@@ -23,7 +23,7 @@ use neutron_sdk::{
     },
 };
 
-use std::str::FromStr;
+use std::{ops::{Div, Mul}, str::FromStr};
 
 use skip::{
     asset::Asset,
@@ -50,7 +50,7 @@ pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> ContractResult<Re
 // Contract name and version used for migration.
 const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const MAX_SLIPPAGE_BASIS_POINTS: i64 = 2000;
+const MAX_SLIPPAGE_BASIS_POINTS: u64 = 10_000;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -531,31 +531,9 @@ fn perform_duality_limit_order_query(
     amount_out: Uint128,
     swap_operation: &SwapOperation,
     deps: Deps,
-    env: &Env,
+    _env: &Env,
 ) -> Result<Uint128, ContractError> {
-    // Create the bank query request for the DEX balance. We do this because simulations require a balance
-    // and we don't have access to the sender's balance. The DEX should often have a sufficient balance.
-    // This is a temporary workaround untill we remove balance requirements for query.
-    let dex_module_address: Addr = DEX_MODULE_ADDRESS.load(deps.storage)?;
 
-    let dex_balance_request = QueryRequest::Bank(BankQuery::Balance {
-        address: dex_module_address.clone().into(),
-        denom: swap_operation.denom_in.clone(),
-    });
-
-    // get the DEX balance.
-    let dex_balance_simulation_result: BalanceResponse =
-        match deps.querier.query(&dex_balance_request) {
-            Ok(result) => result,
-            Err(err) => return Err(ContractError::from(err)),
-        };
-
-    // set dex balance to be the input amount
-    let input_amount: Int128 = match uint128_to_int128(dex_balance_simulation_result.amount.amount)
-    {
-        Ok(amount) => amount,
-        Err(e) => return Err(e),
-    };
 
     // convert amount_out to int.
     let max_out: Int128 = match uint128_to_int128(amount_out) {
@@ -564,18 +542,22 @@ fn perform_duality_limit_order_query(
     };
 
     // get the tick index
-    let (_, cur_tick) =
+    let (taker_price, cur_tick) =
         get_spot_price_and_tick(deps, &swap_operation.denom_out, &swap_operation.denom_in)?;
+
+    // The required amount in if we can swap at the spot price
+    let min_amount_in = Decimal::new(amount_out).div(taker_price);
+    let amount_in = min_amount_in.mul(Decimal::bps(MAX_SLIPPAGE_BASIS_POINTS));
     // add some safe but arbitrary slippage to satisfy some dex internals
-    let tick_index_in_to_out = cur_tick + MAX_SLIPPAGE_BASIS_POINTS;
+    let tick_index_in_to_out = cur_tick + MAX_SLIPPAGE_BASIS_POINTS as i64;
     // create the LimitOrder Message
     let query_msg = SimulatePlaceLimitOrderRequest {
-        sender: dex_module_address.clone().to_string(),
-        receiver: env.contract.address.to_string(),
+        sender: "".to_string(),
+        receiver: "".to_string(),
         token_in: swap_operation.denom_in.clone(),
         token_out: swap_operation.denom_out.clone(),
         tick_index_in_to_out,
-        amount_in: input_amount.to_string(),
+        amount_in: amount_in.to_string(),
         order_type: LimitOrderType::FillOrKill,
         // expiration_time is only valid if order_type == GOOD_TIL_TIME.
         expiration_time: None,
