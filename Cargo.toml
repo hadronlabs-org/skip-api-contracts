@@ -44,7 +44,7 @@ drop-factory         = { git = "https://github.com/hadronlabs-org/drop-contracts
 drop-staking-base    = { git = "https://github.com/hadronlabs-org/drop-contracts.git", branch = "feat/audit-fixes", features = ["library"] }
 mockall              = "0.12.1"
 neutron-proto        = { version = "0.1.1", default-features = false, features = ["cosmwasm"] }
-neutron-sdk          = "0.10.0"
+neutron-sdk          = { git = "https://github.com/neutron-org/neutron-sdk", branch = "patch/sim_requests"}
 osmosis-std          = "0.15.3"
 prost                = "0.11"
 pryzm-std            = "0.1.7"

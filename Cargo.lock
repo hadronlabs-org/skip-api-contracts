@@ -231,12 +231,11 @@ dependencies = [
 
 [[package]]
 name = "cosmwasm-crypto"
-version = "1.5.5"
+version = "1.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd50718a2b6830ce9eb5d465de5a018a12e71729d66b70807ce97e6dd14f931d"
+checksum = "eba94b9f3fb79b9f1101b3e0c61995a557828e2c0d3f5579c1d0bfbea333c19e"
 dependencies = [
  "digest 0.10.7",
- "ecdsa",
  "ed25519-zebra",
  "k256",
  "rand_core 0.6.4",
@@ -1185,9 +1184,9 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
 name = "k256"
-version = "0.13.1"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cadb76004ed8e97623117f3df85b17aaa6626ab0b0831e6573f104df16cd1bcc"
+checksum = "f6e3919bbaa2945715f0bb6d3934a173d1e9a59ac23767fbaaef277265a7411b"
 dependencies = [
  "cfg-if",
  "ecdsa",
@@ -1303,6 +1302,27 @@ dependencies = [
 name = "neutron-sdk"
 version = "0.10.0"
 source = "git+https://github.com/neutron-org/neutron-sdk?branch=feat/proposal-votes#2dfca1734dfc4cfba478b3067417648733d66cd9"
+dependencies = [
+ "bech32",
+ "cosmos-sdk-proto 0.20.0",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "prost 0.12.6",
+ "prost-types 0.12.6",
+ "protobuf 3.4.0",
+ "schemars",
+ "serde",
+ "serde-json-wasm 1.0.1",
+ "serde_json",
+ "speedate",
+ "tendermint-proto 0.34.1",
+ "thiserror",
+]
+
+[[package]]
+name = "neutron-sdk"
+version = "0.10.0"
+source = "git+https://github.com/neutron-org/neutron-sdk?branch=patch/sim_requests#9ecafd10df006773a08a363b40cce270ec6693b9"
 dependencies = [
  "bech32",
  "cosmos-sdk-proto 0.20.0",
@@ -1494,7 +1514,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.72",
@@ -1876,7 +1896,7 @@ dependencies = [
  "cw-storage-plus 1.2.0",
  "cw2 1.1.2",
  "neutron-proto",
- "neutron-sdk 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "neutron-sdk 0.10.0 (git+https://github.com/neutron-org/neutron-sdk?branch=patch/sim_requests)",
  "prost 0.11.9",
  "skip",
  "test-case",
@@ -1971,7 +1991,7 @@ dependencies = [
  "cw-utils 1.0.3",
  "cw2 1.1.2",
  "cw20 1.1.2",
- "neutron-sdk 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "neutron-sdk 0.10.0 (git+https://github.com/neutron-org/neutron-sdk?branch=patch/sim_requests)",
  "skip",
  "test-case",
  "thiserror",

@@ -10,9 +10,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use cw_utils::one_coin;
 use neutron_sdk::stargate::dex::types::{
-    AllTickLiquidityRequest, AllTickLiquidityResponse, EstimateMultiHopSwapRequest,
-    EstimateMultiHopSwapResponse, EstimatePlaceLimitOrderRequest, EstimatePlaceLimitOrderResponse,
-    LimitOrderType, TickLiquidity::LimitOrderTranche, TickLiquidity::PoolReserves,
+    AllTickLiquidityRequest, AllTickLiquidityResponse, LimitOrderType, SimulateMultiHopSwapRequest, SimulateMultiHopSwapResponse, SimulatePlaceLimitOrderRequest, SimulatePlaceLimitOrderResponse, TickLiquidity::{LimitOrderTranche, PoolReserves}
 };
 use neutron_sdk::{
     bindings::query::PageRequest,
@@ -20,7 +18,7 @@ use neutron_sdk::{
     stargate::{
         aux::create_stargate_msg,
         dex::query::{
-            get_estimate_multi_hop_swap, get_estimate_place_limit_order, get_tick_liquidity_all,
+            get_simulate_multi_hop_swap, get_simulate_place_limit_order, get_tick_liquidity_all,
         },
     },
 };
@@ -300,10 +298,10 @@ fn query_simulate_swap_exact_asset_in(
     let dex_module_address: Addr = DEX_MODULE_ADDRESS.load(deps.storage)?;
 
     // Create the duality multi hop swap query
-    let query_msg: EstimateMultiHopSwapRequest = EstimateMultiHopSwapRequest {
+    let query_msg: SimulateMultiHopSwapRequest = SimulateMultiHopSwapRequest {
         // creator is the DEX for the query as it will usually have sufficient balance.
         // this balance requirement will de depricated soon.
-        creator: dex_module_address.to_string(),
+        sender: dex_module_address.to_string(),
         // Receiver cannot be the dex, it is blocked from receiving funds
         receiver: env.contract.address.to_string(),
         routes: vec![duality_multi_hop_swap_route.hops],
@@ -312,12 +310,12 @@ fn query_simulate_swap_exact_asset_in(
         pick_best_route: true,
     };
 
-    let simulation_result: EstimateMultiHopSwapResponse =
-        get_estimate_multi_hop_swap(deps, query_msg)?;
+    let simulation_result: SimulateMultiHopSwapResponse =
+        get_simulate_multi_hop_swap(deps, query_msg)?;
     // Return the asset out
     Ok(Coin {
         denom: denom_out,
-        amount: simulation_result.coin_out.amount,
+        amount: simulation_result.resp.coin_out.amount,
     }
     .into())
 }
@@ -571,8 +569,8 @@ fn perform_duality_limit_order_query(
     // add some safe but arbitrary slippage to satisfy some dex internals
     let tick_index_in_to_out = cur_tick + MAX_SLIPPAGE_BASIS_POINTS;
     // create the LimitOrder Message
-    let query_msg = EstimatePlaceLimitOrderRequest {
-        creator: dex_module_address.clone().to_string(),
+    let query_msg = SimulatePlaceLimitOrderRequest {
+        sender: dex_module_address.clone().to_string(),
         receiver: env.contract.address.to_string(),
         token_in: swap_operation.denom_in.clone(),
         token_out: swap_operation.denom_out.clone(),
@@ -582,13 +580,20 @@ fn perform_duality_limit_order_query(
         // expiration_time is only valid if order_type == GOOD_TIL_TIME.
         expiration_time: None,
         max_amount_out: Some(max_out.to_string()),
+        limit_sell_price: None,
+        min_avg_sell_price: None,
+
     };
 
     // Get the result of the simulation
-    let simulation_result: EstimatePlaceLimitOrderResponse =
-        get_estimate_place_limit_order(deps, query_msg)?;
+    let simulation_result: SimulatePlaceLimitOrderResponse =
+        get_simulate_place_limit_order(deps, query_msg)?;
     // Return the input amount needed to yeild the given output amount (max_out).
-    Ok(simulation_result.swap_in_coin.amount)
+    let coin_in: Coin = match simulation_result.resp.taker_coin_in {
+        Some(v) => v,
+        None => return Err(ContractError::NoLiquidityToParse),
+    };
+    Ok(coin_in.amount)
 }
 
 fn calculate_spot_price_multi(
