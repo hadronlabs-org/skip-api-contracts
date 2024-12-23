@@ -3,8 +3,8 @@ use crate::{
     state::{DEX_MODULE_ADDRESS, ENTRY_POINT_CONTRACT_ADDRESS},
 };
 use cosmwasm_std::{
-    entry_point, to_json_binary, Addr, BalanceResponse, BankQuery, Binary, Coin, CosmosMsg,
-    Decimal, Deps, DepsMut, Env, Int128, MessageInfo, QueryRequest, Response, StdError, Uint128,
+    entry_point, to_json_binary, Addr, Binary, Coin, CosmosMsg,
+    Decimal, Deps, DepsMut, Env, Int128, MessageInfo, Response, StdError, Uint128,
     WasmMsg,
 };
 use cw2::set_contract_version;
@@ -545,8 +545,10 @@ fn perform_duality_limit_order_query(
     let (taker_price, cur_tick) =
         get_spot_price_and_tick(deps, &swap_operation.denom_out, &swap_operation.denom_in)?;
 
-    // The required amount in if we can swap at the spot price
+    // The required amount in if we swap at the spot price
     let min_amount_in = Decimal::new(amount_out).div(taker_price);
+
+    // increase amount in to insure we will hit max_amount_out given ample liquidity
     let amount_in = min_amount_in.mul(Decimal::bps(MAX_SLIPPAGE_BASIS_POINTS));
     // add some safe but arbitrary slippage to satisfy some dex internals
     let tick_index_in_to_out = cur_tick + MAX_SLIPPAGE_BASIS_POINTS as i64;
